@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Speech-to-Speech Camera Chat</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Local Browser Demo</p>
+        <h1>Realtime voice chat with webcam context</h1>
+        <p class="lede">
+          This page streams microphone audio to the local `speech-to-speech` realtime server and shares a
+          fresh webcam frame at the start of each spoken turn when camera context is enabled.
+        </p>
+      </section>
+
+      <section class="panel controls">
+        <div class="control-row">
+          <label class="field">
+            <span>Realtime WebSocket</span>
+            <input id="endpoint" type="text" value="ws://127.0.0.1:8876/v1/realtime">
+          </label>
+          <div class="button-row">
+            <button id="connect" type="button">Connect</button>
+            <button id="disconnect" type="button" disabled>Disconnect</button>
+            <button id="snapshot" type="button" disabled>Share Snapshot</button>
+          </div>
+        </div>
+
+        <div class="control-row compact">
+          <label class="toggle">
+            <input id="camera-context" type="checkbox" checked>
+            <span>Auto-share webcam frame at speech start</span>
+          </label>
+          <p id="status" class="status idle">Idle</p>
+        </div>
+
+        <label class="field">
+          <span>Session Instructions</span>
+          <textarea id="instructions" rows="4">You are a helpful multimodal assistant. Use the latest webcam frame when the user asks about what you can see.</textarea>
+        </label>
+      </section>
+
+      <section class="grid">
+        <section class="panel preview">
+          <div class="panel-header">
+            <h2>Camera Preview</h2>
+            <p id="snapshot-meta">No snapshot shared yet.</p>
+          </div>
+          <video id="preview" autoplay muted playsinline></video>
+        </section>
+
+        <section class="panel transcript">
+          <div class="panel-header">
+            <h2>Live Turn State</h2>
+            <p>Browser UI only. The assistant audio plays through your speakers.</p>
+          </div>
+          <div class="transcript-block">
+            <p class="label">User</p>
+            <p id="user-text" class="bubble user">Waiting for microphone input.</p>
+          </div>
+          <div class="transcript-block">
+            <p class="label">Assistant</p>
+            <p id="assistant-text" class="bubble assistant">Waiting for server output.</p>
+          </div>
+        </section>
+      </section>
+
+      <section class="panel log-panel">
+        <div class="panel-header">
+          <h2>Event Log</h2>
+          <p>Useful when a local permission or websocket issue blocks the call.</p>
+        </div>
+        <pre id="log"></pre>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

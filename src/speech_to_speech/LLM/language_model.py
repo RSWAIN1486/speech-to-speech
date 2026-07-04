@@ -826,7 +826,16 @@ class VisionLanguageModelHandler(BaseLanguageModelHandler):
         if self.backend == "mlx":
             if not HAS_MLX_VLM:
                 raise ImportError("mlx-vlm is required for MLX VLM models. Install with: pip install mlx-vlm")
-            self.model, self.processor = mlx_vlm_load(model_name)  # type: ignore[assignment]
+            try:
+                self.model, self.processor = mlx_vlm_load(model_name)  # type: ignore[assignment]
+            except ImportError as exc:
+                if "torchvision" in str(exc).lower():
+                    raise ImportError(
+                        "torchvision is required for MLX VLM models such as Qwen2.5-VL. "
+                        "Re-run `uv sync --extra mlx-lm` or install `torchvision==0.26.0` "
+                        "in the active environment."
+                    ) from exc
+                raise
             self.tokenizer = self.processor.tokenizer  # type: ignore[assignment]
             self.gen_kwargs = gen_kwargs
         else:
@@ -910,9 +919,7 @@ class VisionLanguageModelHandler(BaseLanguageModelHandler):
 
             def generate_mlx(system: str, user: str) -> str:
                 messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
-                formatted_prompt = processor.apply_chat_template(  # type: ignore[union-attr]
-                    messages, tokenize=False, add_generation_prompt=True
-                )
+                formatted_prompt = self._apply_vlm_chat_template(messages)
                 with MLXLockContext(handler_name="MLX-VLM-compact", timeout=10.0):
                     token_iter = mlx_vlm_stream_generate(  # type: ignore[arg-type]
                         model, processor, formatted_prompt, None, max_tokens=max_tokens
@@ -941,6 +948,27 @@ class VisionLanguageModelHandler(BaseLanguageModelHandler):
 
             return generate_transformers
 
+    def _apply_vlm_chat_template(self, messages: list[dict[str, Any]]) -> str:
+        """Format VLM chat using the processor template, with a tokenizer fallback.
+
+        Some MLX-VLM processors (including Qwen2.5-VL at the time of writing)
+        expose ``apply_chat_template`` but keep ``processor.chat_template`` as
+        ``None``. In that case transformers raises before generation starts even
+        though the tokenizer has the correct multimodal template.
+        """
+        processor_kwargs = {"tokenize": False, "add_generation_prompt": True}
+        processor_template = getattr(self.processor, "chat_template", None)
+        tokenizer_template = getattr(self.tokenizer, "chat_template", None)
+
+        if processor_template is not None:
+            return str(self.processor.apply_chat_template(messages, **processor_kwargs))
+
+        if tokenizer_template is not None:
+            logger.info("Falling back to tokenizer chat template for VLM prompt formatting.")
+            return str(self.tokenizer.apply_chat_template(messages, **processor_kwargs))  # type: ignore[union-attr]
+
+        return str(self.processor.apply_chat_template(messages, **processor_kwargs))
+
     def _prepare_vlm_inputs(self, chat_messages: list[dict[str, Any]]) -> tuple[Any, int]:
         """Build processor inputs for transformers VLM generation.
 
@@ -965,11 +993,7 @@ class VisionLanguageModelHandler(BaseLanguageModelHandler):
             else:
                 converted_messages.append(msg)
 
-        text_prompt = self.processor.apply_chat_template(
-            converted_messages,
-            tokenize=False,
-            add_generation_prompt=True,
-        )
+        text_prompt = self._apply_vlm_chat_template(converted_messages)
         inputs = self.processor(
             text=[text_prompt],
             images=images if images else None,
@@ -1003,9 +1027,5 @@ class VisionLanguageModelHandler(BaseLanguageModelHandler):
             else:
                 converted_messages.append(msg)
 
-        formatted_prompt = self.processor.apply_chat_template(
-            converted_messages,
-            tokenize=False,
-            add_generation_prompt=True,
-        )
+        formatted_prompt = self._apply_vlm_chat_template(converted_messages)
         return images, formatted_prompt

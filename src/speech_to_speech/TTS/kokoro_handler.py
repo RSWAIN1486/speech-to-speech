@@ -170,6 +170,13 @@ class KokoroTTSHandler(BaseHandler[TTSIn, TTSOut]):
             self._preload_multilingual_voices()
         except ImportError as e:
             message = str(e)
+            if "No module named" in message:
+                missing = message.split("No module named", 1)[1].strip().strip("'\"")
+                raise ImportError(
+                    "Kokoro TTS on Apple Silicon requires additional mlx-audio TTS dependencies. "
+                    f"Missing dependency: {missing}. "
+                    "Re-run `uv sync` or install it manually in the active environment."
+                ) from e
             if "misaki" in message or "espeakng_loader" in message:
                 raise ImportError(
                     "Kokoro TTS on Apple Silicon requires additional mlx-audio TTS dependencies. "

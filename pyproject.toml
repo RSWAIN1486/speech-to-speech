@@ -56,6 +56,7 @@ dependencies = [
     "mlx-metal==0.31.1; platform_system == 'Darwin'",
     "misaki>=0.9.4; platform_system == 'Darwin'",
     "espeakng-loader>=0.2.4; platform_system == 'Darwin'",
+    "num2words>=0.5.14; platform_system == 'Darwin'",
     "spacy>=3.8.4; platform_system == 'Darwin'",
     "phonemizer-fork>=3.3.2; platform_system == 'Darwin'",
 ]
@@ -79,6 +80,7 @@ language-detection = [
 mlx-lm = [
     "mlx-lm==0.31.1; platform_system == 'Darwin'",
     "mlx-vlm==0.4.1; platform_system == 'Darwin'",
+    "torchvision==0.26.0; platform_system == 'Darwin'",
 ]
 paraformer = [
     "funasr>=1.1.6",
