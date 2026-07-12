@@ -266,4 +266,5 @@ ws://127.0.0.1:8876/v1/realtime
 
 - `g6.xlarge` is the cheapest first try, not the most comfortable production size.
 - Keep STT and TTS on CPU on this size unless profiling shows spare GPU headroom.
-- The current browser demo sends one low-detail still frame per turn. Accuracy will improve more if you also increase snapshot quality or resolution.
+- The current browser demo sends one low-detail still frame per turn. On this Gemma/vLLM setup we keep only the latest frame in prompt history, because the server is configured for at most one image per prompt.
+- Accuracy will improve more if you also increase snapshot quality or resolution.

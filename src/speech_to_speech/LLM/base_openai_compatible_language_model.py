@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 import httpx
 from nltk import sent_tokenize
-from openai import OpenAI
+from openai import APIStatusError, OpenAI
 from openai.types.realtime.conversation_item import (
     RealtimeConversationItemAssistantMessage,
     RealtimeConversationItemFunctionCall,
@@ -43,6 +43,13 @@ from speech_to_speech.pipeline.speculative_turns import SpeculativeTurnTracker
 from speech_to_speech.utils.utils import is_out_of_band, response_wants_audio
 
 logger = logging.getLogger(__name__)
+
+
+def _truncate_for_log(value: Any, max_chars: int = 4000) -> str:
+    text = repr(value)
+    if len(text) <= max_chars:
+        return text
+    return f"{text[:max_chars]}... <truncated {len(text) - max_chars} chars>"
 
 
 # ── Normalised provider events ────────────────────────────────────────────────
@@ -507,6 +514,22 @@ class BaseOpenAICompatibleHandler(BaseHandler[LLMIn, LLMOut], ABC):
                     speech_stopped_at_s=turn.speech_stopped_at_s,
                     cancel_generation=turn.gen,
                 )
+        except APIStatusError as exc:
+            response_text = ""
+            if exc.response is not None:
+                try:
+                    response_text = exc.response.text
+                except Exception:
+                    response_text = "<unavailable>"
+            logger.error(
+                "OpenAI-compatible request failed with status %s. body=%s api_input=%s optional_kwargs=%s",
+                exc.status_code,
+                response_text or "<empty>",
+                _truncate_for_log(api_input),
+                _truncate_for_log(optional_kwargs),
+            )
+            if error_message is None:
+                error_message = f"Language model request failed: HTTP {exc.status_code}"
         except Exception as exc:
             # Any other generation failure must still terminate the response: record
             # the error and fall through to the EndOfResponse below. Without this the
@@ -560,6 +583,11 @@ class BaseOpenAICompatibleHandler(BaseHandler[LLMIn, LLMOut], ABC):
             return
 
         original_chat = runtime_config.chat
+        # Realtime clients may inject a fresh webcam frame on many turns, but
+        # Gemma/vLLM on this deployment accepts only one image per prompt.
+        # Keep only the latest image-bearing user message in history so older
+        # frames do not cause repeated 400s on subsequent turns.
+        original_chat.keep_only_latest_images(1)
         if is_out_of_band(response):
             try:
                 active_chat = build_active_chat(original_chat, response)

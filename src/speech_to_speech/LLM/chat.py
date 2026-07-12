@@ -486,6 +486,30 @@ class Chat:
                         continue
                     item.content = [p for p in item.content if p.type != "input_image"]
 
+    def keep_only_latest_images(self, max_images: int = 1) -> None:
+        """Keep image parts only on the most recent ``max_images`` user messages.
+
+        Older image-bearing user messages keep their text parts but have
+        ``input_image`` parts removed. This is useful for backends such as
+        Gemma/vLLM that allow only a small number of images per prompt while
+        the realtime client may inject a fresh webcam frame on many turns.
+        """
+        if max_images < 0:
+            raise ValueError("max_images must be >= 0")
+
+        with self._lock:
+            remaining = max_images
+            for item in reversed(self.buffer):
+                if not isinstance(item, RealtimeConversationItemUserMessage):
+                    continue
+                has_image = any(p.type == "input_image" for p in item.content)
+                if not has_image:
+                    continue
+                if remaining > 0:
+                    remaining -= 1
+                    continue
+                item.content = [p for p in item.content if p.type != "input_image"]
+
     # ── Compaction internals ──────────────────────────────────
 
     def _snapshot_for_compaction(
