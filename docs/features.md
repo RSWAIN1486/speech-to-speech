@@ -5,6 +5,7 @@
 The demo in [`demo/`](../demo/index.html) supports:
 
 - realtime microphone streaming to the local websocket server
+- support for switching the websocket endpoint to a remote backend
 - local speaker playback of streamed assistant audio
 - live user transcription and assistant transcript display
 - webcam preview in the browser

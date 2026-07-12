@@ -26,8 +26,8 @@ const state = {
   stopping: false,
 };
 
-const SNAPSHOT_WIDTH = 640;
-const SNAPSHOT_QUALITY = 0.72;
+const SNAPSHOT_WIDTH = 720;
+const SNAPSHOT_QUALITY = 1.0;
 const TARGET_SAMPLE_RATE = 16000;
 
 function logLine(message) {

@@ -12,11 +12,13 @@ Current flow:
 4. The backend STT transcribes the spoken turn, the MLX vision-language model sees the latest injected frame plus the transcript, and TTS streams audio deltas back to the browser.
 5. The browser decodes `response.output_audio.delta` PCM chunks and plays them through the local speakers while showing transcript events in the UI.
 
+Because the websocket endpoint is editable in the browser UI, the same frontend can also connect to a remote realtime backend over an SSH tunnel or direct websocket URL. The documented remote deployment path currently uses an AWS `g6.xlarge` instance, a local `vLLM` server for Gemma 4 E4B, and the existing `speech-to-speech` realtime server as the websocket surface.
+
 ## Local Mac Requirement
 
 The MLX-based multimodal path requires an arm64 Python interpreter. An x86_64 Python running under Rosetta will fail to install `mlx` and `mlx-vlm`.
 
-The current Qwen2.5-VL path also depends on `torchvision` because the processor stack loaded by `transformers` includes the Qwen video processor classes even when the browser demo only sends still images.
+The current Qwen VL path also depends on `torchvision` because the processor stack loaded by `transformers` includes the Qwen video processor classes even when the browser demo only sends still images.
 
 ## Recommended Local Profile
 
@@ -27,5 +29,7 @@ For the browser demo, the current recommended local stack is:
 - `--stt parakeet-tdt`
 - `--llm_backend mlx-lm`
 - `--llm_is_vlm True`
-- `--model_name mlx-community/Qwen2.5-VL-3B-Instruct-4bit`
+- `--model_name mlx-community/Qwen3-VL-8B-Instruct-4bit`
 - `--tts kokoro`
+
+If you need a lighter local profile for faster iteration, the earlier `mlx-community/Qwen2.5-VL-3B-Instruct-4bit` setup is still a valid fallback.

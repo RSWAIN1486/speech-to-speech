@@ -4,6 +4,7 @@
 - Added a local browser demo for realtime microphone + webcam chat against `/v1/realtime`.
 - Documented the arm64 Python requirement for MLX-based multimodal inference.
 - Documented the recommended local Mac launch profile using an MLX VLM and Kokoro TTS.
+- Documented a single-GPU AWS `g6.xlarge` deployment path that serves Gemma 4 E4B remotely while keeping the browser UI local.
 - Added `torchvision` to the macOS `mlx-lm` extra so the Qwen2.5-VL processor stack loads cleanly.
 - Added the missing `num2words` runtime dependency for Kokoro TTS on macOS and clarified the import error path.
 - Fixed MLX Qwen2.5-VL prompt formatting so realtime turns fall back to the tokenizer chat template when the processor template is missing.

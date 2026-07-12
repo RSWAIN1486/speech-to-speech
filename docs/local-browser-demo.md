@@ -43,7 +43,7 @@ The default port `8765` may already be in use on your machine, so this demo uses
   --stt parakeet-tdt \
   --llm_backend mlx-lm \
   --llm_is_vlm True \
-  --model_name mlx-community/Qwen2.5-VL-3B-Instruct-4bit \
+  --model_name mlx-community/Qwen3-VL-8B-Instruct-4bit \
   --tts kokoro \
   --log_level info
 ```
@@ -53,6 +53,7 @@ Notes:
 - First launch downloads the STT model and the VLM from Hugging Face.
 - The repository will also fetch the NLTK tokenizers the first time `speech-to-speech` starts.
 - `DeepFilterNet` is optional; the startup warning about it being unavailable is not fatal for this demo.
+- `mlx-community/Qwen3-VL-8B-Instruct-4bit` is heavier than the earlier Qwen2.5-VL 3B profile. If you hit memory pressure or very slow first-token latency, try `mlx-community/Qwen3-VL-8B-Instruct-3bit`.
 
 ## 4. Serve the browser client
 
@@ -82,3 +83,9 @@ http://127.0.0.1:8000
 - `Assistant` shows the returned transcript for the spoken reply.
 - Audio playback is streamed from `response.output_audio.delta`.
 - The event log is the first place to look for websocket or permission failures.
+
+## 7. Remote GPU Variant
+
+The websocket endpoint is editable in the demo UI, so the browser can talk to a remote realtime backend instead of a local one.
+
+For the current single-GPU AWS path that keeps the browser on your Mac and runs Gemma 4 E4B remotely, see [aws-g6-gemma4-e4b.md](./aws-g6-gemma4-e4b.md).
