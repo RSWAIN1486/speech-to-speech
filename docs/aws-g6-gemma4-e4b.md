@@ -119,7 +119,7 @@ Install base tools:
 ```bash
 nvidia-smi
 sudo apt-get update
-sudo apt-get install -y git tmux build-essential libsndfile1 ffmpeg
+sudo apt-get install -y git tmux build-essential libsndfile1 ffmpeg python3.12-dev
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source ~/.local/bin/env
 ```
@@ -153,6 +153,7 @@ Use a conservative config first because `g6.xlarge` is the minimum target:
 ```bash
 source ~/vllm-env/bin/activate
 
+VLLM_USE_FLASHINFER_SAMPLER=0 \
 vllm serve google/gemma-4-E4B-it \
   --host 127.0.0.1 \
   --port 8000 \
@@ -168,6 +169,29 @@ If `vllm` fails during import with a `torchcodec` error about missing
 `libavutil.so.*`, install `ffmpeg` on the instance and retry. Recent `vllm`
 versions also expect `--limit-mm-per-prompt` in JSON form rather than the
 older `image=1` syntax.
+
+If startup fails later with a compiler error like `fatal error: Python.h: No
+such file or directory`, install `python3.12-dev` and retry the command. vLLM's
+compile path needs the CPython headers on this AMI.
+
+If startup fails with a FlashInfer error like `Could not find nvcc` while
+warming up the sampler, disable FlashInfer sampling with
+`VLLM_USE_FLASHINFER_SAMPLER=0` as shown above. This avoids requiring the full
+CUDA toolkit just for sampler JIT on `g6.xlarge`.
+
+In a second shell, you can quickly verify the local `vllm` server accepts both
+text-only and text+image chat requests:
+
+```bash
+cd ~/speech-to-speech
+python3 scripts/smoke_test_vllm_gemma.py
+```
+
+To try a different local image:
+
+```bash
+python3 scripts/smoke_test_vllm_gemma.py --image /path/to/test-image.jpg
+```
 
 ## 4. Start the realtime backend
 
@@ -190,12 +214,27 @@ cd ~/speech-to-speech
   --llm_backend chat-completions \
   --model_name google/gemma-4-E4B-it \
   --responses_api_base_url http://127.0.0.1:8000/v1 \
+  --responses_api_api_key local-api-key \
   --responses_api_stream \
   --tts kokoro \
   --kokoro_device cpu \
   --enable_live_transcription \
   --log_level info
 ```
+
+The local `vllm` server does not require a real API key, but older versions of
+the OpenAI Python client still insist that one is present. Any placeholder
+string works here.
+
+To verify the realtime websocket path and TTS output, run this in another shell:
+
+```bash
+cd ~/speech-to-speech
+.venv/bin/python scripts/smoke_test_realtime_backend.py
+```
+
+This sends one text turn through `/v1/realtime`, waits for transcript + audio
+events, and saves the returned PCM audio to `tmp/realtime-smoke-output.wav`.
 
 ## 5. Connect from your Mac
 

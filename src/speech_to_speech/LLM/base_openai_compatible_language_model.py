@@ -4,6 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 import httpx
 from nltk import sent_tokenize
@@ -153,10 +154,34 @@ class BaseOpenAICompatibleHandler(BaseHandler[LLMIn, LLMOut], ABC):
         )
 
         self.user_role = user_role
-        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        self.client = OpenAI(api_key=self._resolve_api_key(api_key, base_url), base_url=base_url)
         self._extra_body = self._build_extra_body(base_url, disable_thinking, reasoning_effort)
         self.compactor = build_compactor(self._build_compaction_generate_fn()) if compact_history else None
         self.warmup()
+
+    @staticmethod
+    def _is_local_base_url(base_url: Optional[str]) -> bool:
+        """Whether ``base_url`` points at a localhost-style OpenAI-compatible server."""
+        if not base_url:
+            return False
+        parsed = urlparse(base_url)
+        hostname = parsed.hostname
+        return hostname in {"127.0.0.1", "localhost", "::1"}
+
+    @classmethod
+    def _resolve_api_key(cls, api_key: Optional[str], base_url: Optional[str]) -> Optional[str]:
+        """Return the API key to pass to the OpenAI client.
+
+        The OpenAI Python client requires a non-empty API key even when talking to
+        local OpenAI-compatible servers such as vLLM that do not actually verify
+        one. For localhost endpoints we therefore supply a harmless placeholder
+        when the user did not provide a real key.
+        """
+        if api_key:
+            return api_key
+        if cls._is_local_base_url(base_url):
+            return "local-api-key"
+        return None
 
     @staticmethod
     def _is_official_openai(base_url: Optional[str]) -> bool:
