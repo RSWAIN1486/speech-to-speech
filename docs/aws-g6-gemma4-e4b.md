@@ -119,7 +119,7 @@ Install base tools:
 ```bash
 nvidia-smi
 sudo apt-get update
-sudo apt-get install -y git tmux build-essential libsndfile1
+sudo apt-get install -y git tmux build-essential libsndfile1 ffmpeg
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source ~/.local/bin/env
 ```
@@ -159,10 +159,15 @@ vllm serve google/gemma-4-E4B-it \
   --dtype bfloat16 \
   --gpu-memory-utilization 0.80 \
   --max-model-len 2048 \
-  --limit-mm-per-prompt image=1
+  --limit-mm-per-prompt '{"image":1}'
 ```
 
 If this runs out of memory, reduce `--max-model-len` to `1024`.
+
+If `vllm` fails during import with a `torchcodec` error about missing
+`libavutil.so.*`, install `ffmpeg` on the instance and retry. Recent `vllm`
+versions also expect `--limit-mm-per-prompt` in JSON form rather than the
+older `image=1` syntax.
 
 ## 4. Start the realtime backend
 
